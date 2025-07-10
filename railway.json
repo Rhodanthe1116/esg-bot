@@ -1,0 +1,7 @@
+{
+  "deployments": {
+    "healthcheckPath": "/",
+    "numReplicas": 1,
+    "restartPolicyType": "ALWAYS"
+  }
+}
