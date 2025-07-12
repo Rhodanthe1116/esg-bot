@@ -19,6 +19,9 @@ cp .env.example .env
 
 # 執行
 uvicorn main:app --reload
+
+# Production
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 ---
