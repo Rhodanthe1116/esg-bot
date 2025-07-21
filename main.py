@@ -11,7 +11,7 @@ app = FastAPI()
 # 包含 PCR 記錄的路由
 # 所有定義在 pcr_records_router 中的端點都會被加入到主應用程式中
 app.include_router(pcr_records_router)
-app.include_router(line_bot_router)
+# app.include_router(line_bot_router)
 
 
 
