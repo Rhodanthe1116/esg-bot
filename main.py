@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import os
 from pcr_router import router as pcr_records_router
-from line_bot import router as line_bot_router
+# from line_bot import router as line_bot_router
 
 app = FastAPI()
 
