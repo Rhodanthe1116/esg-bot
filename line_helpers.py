@@ -1,8 +1,10 @@
-
 # line_helpers.py (這是概念上的獨立檔案)
 import os
 import httpx
 import logging
+from dotenv import load_dotenv
+# 加載環境變量
+load_dotenv()
 
 # 再次配置日誌，確保此模組的日誌也能被記錄
 logger = logging.getLogger(__name__)
@@ -54,4 +56,3 @@ async def reply_line(reply_token: str, messages: list):
             logger.error(f"回覆 LINE API 失敗，HTTP 狀態碼: {e.response.status_code} - {e.response.text}")
         except Exception as e:
             logger.error(f"回覆 LINE 發生未知錯誤: {e}")
-

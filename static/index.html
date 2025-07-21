@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>環境部PCR記錄查詢</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* 確保長內容可以換行，並保留原始換行符 */
+        .whitespace-pre-wrap {
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8 bg-gray-100 min-h-screen flex flex-col items-center">
+    <div class="container mx-auto bg-white p-6 rounded-xl shadow-lg w-full max-w-6xl">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">環境部PCR記錄查詢</h1>
+
+        <!-- 查詢與分頁控制項 -->
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-end sm:space-x-4 space-y-4 sm:space-y-0">
+            <div class="flex-grow">
+                <label for="searchInput" class="block text-sm font-medium text-gray-700 mb-1">搜尋關鍵字 (文件名稱/制定者/產品範圍)</label>
+                <input type="text" id="searchInput" placeholder="輸入關鍵字..."
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="limitInput" class="block text-sm font-medium text-gray-700 mb-1">每頁顯示數量</label>
+                <input type="number" id="limitInput" value="50" min="1" max="1000"
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            <button id="searchButton"
+                    class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                查詢
+            </button>
+        </div>
+
+        <!-- 載入指示器 -->
+        <div id="loadingIndicator" class="text-center text-blue-600 font-medium mb-4 hidden">
+            <svg class="animate-spin h-5 w-5 mr-3 inline-block" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            載入中...
+        </div>
+
+        <!-- 錯誤訊息顯示區 -->
+        <div id="errorContainer" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4 hidden" role="alert">
+            <strong class="font-bold">錯誤！</strong>
+            <span class="block sm:inline" id="errorMessage"></span>
+        </div>
+
+        <!-- PCR 記錄卡片容器 -->
+        <div id="pcrRecordsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- 數據將在這裡動態載入為卡片 -->
+        </div>
+
+        <!-- 分頁控制項 -->
+        <div class="flex justify-between items-center mt-4">
+            <button id="prevPageButton"
+                    class="px-4 py-2 bg-gray-300 text-gray-800 font-semibold rounded-md shadow-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                上一頁
+            </button>
+            <span id="pageInfo" class="text-gray-700 font-medium">頁數: 1</span>
+            <button id="nextPageButton"
+                    class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                下一頁
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 將 API_BASE_URL 設置為當前頁面的來源 (protocol + hostname + port)，確保 URL 構建的正確性。
+        // 例如：如果頁面是 http://127.0.0.1:8000/，則 API_BASE_URL 會是 'http://127.0.0.1:8000'。
+        // 如果您直接從檔案系統開啟此檔案 (例如 file:///...)，則 API 請求將會失敗。
+        // 請確保透過 FastAPI 伺服器訪問此頁面 (例如 http://127.0.0.1:8000/ 或 https://127.0.0.1:8000/)。
+        // 若要讓 FastAPI 伺服器使用 HTTPS，您需要額外配置 SSL/TLS 憑證。
+        const API_BASE_URL = window.location.origin; 
+        const DOWNLOAD_BASE_URL = 'https://cfp-calculate.tw/cfpc/Carbon/WebPage/'; // 新增下載連結的基礎 URL
+
+        const pcrRecordsContainer = document.getElementById('pcrRecordsContainer'); // 更改為卡片容器
+        const searchInput = document.getElementById('searchInput');
+        const limitInput = document.getElementById('limitInput');
+        const searchButton = document.getElementById('searchButton');
+        const prevPageButton = document.getElementById('prevPageButton');
+        const nextPageButton = document.getElementById('nextPageButton');
+        const pageInfo = document.getElementById('pageInfo');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorContainer = document.getElementById('errorContainer');
+        const errorMessage = document.getElementById('errorMessage');
+
+        let currentPage = 1;
+        let currentSkip = 0;
+        let currentLimit = parseInt(limitInput.value); // 這裡會讀取新的預設值 50
+        let currentSearch = '';
+
+        // 顯示錯誤訊息
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorContainer.classList.remove('hidden');
+        }
+
+        // 隱藏錯誤訊息
+        function hideError() {
+            errorContainer.classList.add('hidden');
+            errorMessage.textContent = '';
+        }
+
+        // 顯示載入指示器
+        function showLoading() {
+            loadingIndicator.classList.remove('hidden');
+        }
+
+        // 隱藏載入指示器
+        function hideLoading() {
+            loadingIndicator.classList.add('hidden');
+        }
+
+        // 禁用/啟用分頁按鈕
+        function updatePaginationButtons(recordsCount) {
+            prevPageButton.disabled = currentPage === 1;
+            // 如果返回的記錄數少於 limit，表示已經是最後一頁或沒有更多數據
+            nextPageButton.disabled = recordsCount < currentLimit;
+        }
+
+        async function fetchPcrRecords() {
+            // 幫助偵錯：在控制台顯示當前頁面 URL
+            console.log("當前頁面 URL:", window.location.href);
+            console.log("API 基礎 URL:", API_BASE_URL); // 顯示新的 API_BASE_URL
+
+            showLoading();
+            hideError();
+            pcrRecordsContainer.innerHTML = ''; // 清空卡片容器內容
+
+            // 使用 API_BASE_URL 和相對路徑來構建完整的 URL
+            const url = new URL(`/pcr_records/`, API_BASE_URL); // 這裡明確傳入 base URL
+            url.searchParams.append('skip', currentSkip);
+            url.searchParams.append('limit', currentLimit);
+            if (currentSearch) {
+                url.searchParams.append('search', currentSearch);
+            }
+            console.log("最終請求 URL:", url.toString()); // 顯示最終的請求 URL
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP 錯誤！狀態碼: ${response.status}`);
+                }
+                const records = await response.json();
+                
+                if (records.length === 0 && currentPage > 1) {
+                    // 如果當前頁沒有數據但不是第一頁，則退回上一頁
+                    currentPage--;
+                    currentSkip = (currentPage - 1) * currentLimit;
+                    await fetchPcrRecords(); // 重新載入上一頁
+                    return;
+                }
+
+                if (records.length === 0) {
+                    pcrRecordsContainer.innerHTML = '<p class="text-center text-gray-600 col-span-full">沒有找到任何記錄。</p>';
+                }
+
+                records.forEach(record => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white p-4 rounded-xl shadow-md flex flex-col justify-between hover:shadow-lg transition-shadow duration-200'; // 卡片樣式
+
+                    // 處理空值顯示為 '-'
+                    const getDisplayValue = (value) => value === null || value === undefined || value === '' ? '-' : value;
+
+                    // 構建完整的下載連結
+                    const fullDownloadLink = record.download_link ? `${DOWNLOAD_BASE_URL}${record.download_link}` : '';
+
+                    card.innerHTML = `
+                        <div>
+                            <h3 class="text-lg font-semibold text-blue-700 mb-2">
+                                <span class="text-gray-600">文件名稱:</span> ${getDisplayValue(record.document_name)}
+                            </h3>
+                            <p class="text-sm text-gray-700 mb-1">
+                                <span class="font-medium">PCR 登錄編號:</span> ${getDisplayValue(record.pcr_reg_no)}
+                            </p>
+                            <p class="text-sm text-gray-700 mb-1">
+                                <span class="font-medium">制定者:</span> ${getDisplayValue(record.developer)}
+                            </p>
+                            <p class="text-sm text-gray-700 mb-1">
+                                <span class="font-medium">版本:</span> ${getDisplayValue(record.version)}
+                            </p>
+                            <p class="text-sm text-gray-700 mb-1">
+                                <span class="font-medium">核准日期:</span> ${getDisplayValue(record.approval_date)}
+                            </p>
+                            <p class="text-sm text-gray-700 mb-1">
+                                <span class="font-medium">有效期限:</span> ${getDisplayValue(record.effective_date)}
+                            </p>
+                            <div class="mt-3 mb-2 p-3 bg-gray-50 rounded-md border border-gray-200">
+                                <p class="text-sm font-medium text-gray-800 mb-1">適用產品範圍:</p>
+                                <p class="text-xs text-gray-600 whitespace-pre-wrap">${getDisplayValue(record.product_scope)}</p>
+                            </div>
+                            <div class="mt-2 mb-2 p-3 bg-gray-50 rounded-md border border-gray-200">
+                                <p class="text-sm font-medium text-gray-800 mb-1">CCC Codes:</p>
+                                <p class="text-xs text-gray-600 whitespace-pre-wrap">${getDisplayValue(record.ccc_codes)}</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-right">
+                            ${fullDownloadLink ? `<a href="${fullDownloadLink}" target="_blank" class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">下載文件</a>` : ''}
+                        </div>
+                    `;
+                    pcrRecordsContainer.appendChild(card);
+                });
+
+                pageInfo.textContent = `頁數: ${currentPage}`;
+                updatePaginationButtons(records.length);
+
+            } catch (error) {
+                console.error('獲取 PCR 記錄失敗:', error);
+                showError(`無法載入數據: ${error.message}`);
+                updatePaginationButtons(0); // 出錯時禁用按鈕
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 事件監聽器
+        searchButton.addEventListener('click', () => {
+            currentPage = 1;
+            currentSkip = 0;
+            currentLimit = parseInt(limitInput.value);
+            currentSearch = searchInput.value.trim();
+            fetchPcrRecords();
+        });
+
+        prevPageButton.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                currentSkip = (currentPage - 1) * currentLimit;
+                fetchPcrRecords();
+            }
+        });
+
+        nextPageButton.addEventListener('click', () => {
+            currentPage++;
+            currentSkip = (currentPage - 1) * currentLimit;
+            fetchPcrRecords();
+        });
+
+        // 初始載入數據
+        document.addEventListener('DOMContentLoaded', fetchPcrRecords);
+    </script>
+</body>
+</html>
