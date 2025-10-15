@@ -1,18 +1,39 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import os
+from chroma_manager import chroma_manager, ChromaDBManager
 from pcr_router import router as pcr_records_router
+
 # from line_bot import router as line_bot_router
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """應用程式啟動前 (startup) 和關閉後 (shutdown) 的事件"""
+    # 啟動時：載入 ChromaDB
+    try:
+        chroma_manager.initialize_db()
+    except FileNotFoundError as e:
+        print(f"嚴重錯誤: {e}")
+        # 在實際生產中，您可能需要更優雅的錯誤處理或直接退出
+
+    yield
+
+    # 關閉時：執行清理工作（本地 ChromaDB 通常不需要，但為了標準化保留）
+    print(f"[{os.getpid()}] 應用程式關閉，執行清理...")
+    pass
+
+
+# 初始化 FastAPI 應用程式
+app = FastAPI(lifespan=lifespan, title="RAG 語義搜尋服務")
 
 
 # 包含 PCR 記錄的路由
 # 所有定義在 pcr_records_router 中的端點都會被加入到主應用程式中
 app.include_router(pcr_records_router)
 # app.include_router(line_bot_router)
-
 
 
 # --- 新增靜態檔案服務 ---

@@ -1,8 +1,11 @@
 import logging
-from fastapi import APIRouter, HTTPException, Query  # 引入 APIRouter
+from fastapi import APIRouter, Depends, HTTPException, Query  # 引入 APIRouter
 from typing import List, Optional
+from langchain_community.vectorstores import Chroma
 
+from chroma_manager import get_chroma_db
 from pcr_services import (
+    get_pcr_records_from_chroma,
     get_pcr_records_from_db,
     PCRRecord,
 )  # 從 pcr_services.py 匯入服務函數和模型
@@ -34,6 +37,7 @@ async def get_pcr_records(
     search: Optional[str] = Query(
         None, description="在文件名稱、制定者或產品範圍中搜尋的關鍵字"
     ),
+    chroma: Chroma = Depends(get_chroma_db),
 ):
     """
     獲取 PCR 記錄列表。
@@ -43,7 +47,8 @@ async def get_pcr_records(
     """
     try:
         # 呼叫服務層的函數來獲取數據
-        records = await get_pcr_records_from_db(skip=skip, limit=limit, search=search)
+        records = await get_pcr_records_from_chroma(chroma, skip=skip, limit=limit, search=search)
+        # records = await get_pcr_records_from_db(skip=skip, limit=limit, search=search)
         return records
     except Exception as e:
         logger.error(f"API 路由層錯誤: {e}")

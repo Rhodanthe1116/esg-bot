@@ -15,3 +15,10 @@ class PCRRecord(BaseModel):
     download_link: Optional[str] = Field(None, description="下載連結")
     feedback_link: Optional[str] = Field(None, description="意見回饋連結的 ID")
     ccc_codes: Optional[str] = Field(None, description="CCC Codes (以分號分隔)")
+    page_content: Optional[str] = Field(
+        None, description="聚合的文件內容，用於語義搜索和上下文提供"
+    )
+    page_contents: Optional[list] = Field(
+        None, description="聚合的文件內容列表，用於語義搜索和上下文提供"
+    )
+    fid: Optional[str] = Field(None, description="文件識別碼 (從檔名提取)")

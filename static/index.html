@@ -204,6 +204,13 @@
                                 <p class="text-sm font-medium text-gray-800 mb-1">CCC Codes:</p>
                                 <p class="text-xs text-gray-600 whitespace-pre-wrap">${getDisplayValue(record.ccc_codes)}</p>
                             </div>
+                            <div style="display: none;" class="mt-2 mb-2 p-3 bg-gray-50 rounded-md border border-gray-200">
+                                <p class="text-sm font-medium text-gray-800 mb-1">相關內文:</p>
+                                <p class="text-xs text-gray-600 whitespace-pre-wrap">${getDisplayValue(record.page_content)}</p>
+                            </div>
+                            <p class="text-sm text-gray-700 mb-1">
+                                <span class="font-medium">相關段落數:</span> ${getDisplayValue(record.page_contents?.length ?? 0)}
+                            </p>
                         </div>
                         <div class="mt-4 text-right">
                             ${fullDownloadLink ? `<a href="${fullDownloadLink}" target="_blank" class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">下載文件</a>` : ''}
@@ -231,6 +238,11 @@
             currentLimit = parseInt(limitInput.value);
             currentSearch = searchInput.value.trim();
             fetchPcrRecords();
+        });
+        searchInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                searchButton.click();
+            }
         });
 
         prevPageButton.addEventListener('click', () => {

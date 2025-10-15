@@ -4,3 +4,6 @@ langchain
 langchain-community
 openai
 python-dotenv
+pypdf
+chromadb
+sentence-transformers
