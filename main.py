@@ -1,10 +1,14 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import os
 from chroma_manager import chroma_manager, ChromaDBManager
 from pcr_router import router as pcr_records_router
+from chat_router import router as chat_router
+from dotenv import load_dotenv
+load_dotenv()
 
 # from line_bot import router as line_bot_router
 
@@ -33,6 +37,8 @@ app = FastAPI(lifespan=lifespan, title="RAG 語義搜尋服務")
 # 包含 PCR 記錄的路由
 # 所有定義在 pcr_records_router 中的端點都會被加入到主應用程式中
 app.include_router(pcr_records_router)
+# include AI chat router (front-end uses /api/chat)
+app.include_router(chat_router)
 # app.include_router(line_bot_router)
 
 
@@ -46,6 +52,15 @@ static_dir = os.path.join(current_dir, "static")
 # 這會讓 FastAPI 從 'static' 目錄提供檔案，並透過 '/static' 路徑訪問
 # 例如，如果 index.html 在 static/index.html，則可以透過 http://localhost:8000/static/index.html 訪問
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# Configure CORS for local frontend development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # --- 新增根路徑重定向到前端介面 ---

@@ -45,3 +45,5 @@ build/
 
 .env
 .venv
+
+chroma_db/
