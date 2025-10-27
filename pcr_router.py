@@ -9,6 +9,8 @@ from pcr_services import (
     get_pcr_records_from_db,
     PCRRecord,
 )  # 從 pcr_services.py 匯入服務函數和模型
+import json
+from pathlib import Path
 
 # 配置日誌
 logging.basicConfig(
@@ -53,3 +55,58 @@ async def get_pcr_records(
     except Exception as e:
         logger.error(f"API 路由層錯誤: {e}")
         raise HTTPException(status_code=500, detail=f"伺服器內部錯誤: {e}")
+
+
+@router.get(
+    "/by_reg_no",
+    response_model=PCRRecord,
+    summary="依 PCR 登錄編號查詢單筆記錄",
+    description="從本地 pcr_list_scraped.json 中以 pcr_reg_no 精確比對並回傳該筆記錄。",
+)
+async def get_pcr_record_by_reg_no(pcr_reg_no: str = Query(..., description="PCR 登錄編號，例如 24-011")):
+    """
+    直接從本地的 `pcr_list_scraped.json` 檔案中尋找與 `pcr_reg_no` 完全相符的記錄並回傳。
+    若找不到，回傳 404。
+    """
+    try:
+        # 檔案相對於此模組所在路徑
+        base = Path(__file__).resolve().parent
+        json_path = base.joinpath("pcr_list_scraped.json")
+
+        # 如果在同層找不到，嘗試專案根目錄
+        if not json_path.exists():
+            json_path = base.parent.joinpath("pcr_list_scraped.json")
+
+        if not json_path.exists():
+            logger.error(f"找不到 pcr_list_scraped.json (checked {json_path})")
+            raise HTTPException(status_code=500, detail="伺服器尚未載入 PCR 資料 (pcr_list_scraped.json 不存在)")
+
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # 資料可能是列表
+        if not isinstance(data, list):
+            logger.error("pcr_list_scraped.json 格式錯誤，預期為 list")
+            raise HTTPException(status_code=500, detail="pcr_list_scraped.json 格式錯誤")
+
+        # 精確比對 pcr_reg_no，忽略大小寫與前後空白
+        target = (pcr_reg_no or "").strip().lower()
+        for entry in data:
+            entry_reg = (entry.get("pcr_reg_no") or "").strip().lower()
+            if entry_reg == target:
+                # 返回 PCRRecord，允許部分欄位缺失
+                try:
+                    return PCRRecord(**entry)
+                except Exception:
+                    # 若 entry 包含多餘鍵，僅挑出 PCRRecord 欄位
+                    allowed = {k: v for k, v in entry.items() if k in PCRRecord.__fields__}
+                    return PCRRecord(**allowed)
+
+        # 找不到
+        raise HTTPException(status_code=404, detail=f"找不到 PCR 記錄: {pcr_reg_no}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"查詢單筆 PCR 發生錯誤: {e}")
+        raise HTTPException(status_code=500, detail=f"伺服器錯誤: {e}")

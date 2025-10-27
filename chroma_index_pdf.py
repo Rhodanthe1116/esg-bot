@@ -89,8 +89,21 @@ def index_pdfs_to_chroma():
     if not metadata_map:
         return
 
+    import torch
+
+    # 決定使用的設備
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if torch.cuda.is_available():
+        print(f"找到的 GPU 數量: {torch.cuda.device_count()}")
+        print(f"當前 GPU 名稱: {torch.cuda.get_device_name(0)}")
+    else:
+        print("未找到 GPU，將使用 CPU。")
+    print(f"嵌入模型將在設備上運行: {device}")
     # 2. 初始化嵌入模型 (與 chroma_manager.py 保持一致)
-    embeddings = SentenceTransformerEmbeddings(model_name=MODEL_NAME)
+    embeddings = SentenceTransformerEmbeddings(
+        model_name=MODEL_NAME,
+        model_kwargs={"device": device},  # 將 device 參數傳遞給底層模型
+    )
     print(f"[{os.getpid()}] 正在使用嵌入模型: {MODEL_NAME}")
 
     # 3. 初始化 Chroma 客戶端 (使用 LangChain Wrapper)

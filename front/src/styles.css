@@ -1,81 +1,159 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root{
-  --bg:#0f1723;
-  --card:#0b1220;
-  --muted:#93a1b2;
-  --accent:#10b981;
-  --accent-2:#7c3aed;
-  --chat-vspace: 160px; /* change this value to increase/decrease header + margins reserved space */
-  --input-height: 56px; /* adjust input height for spacing calculations */
-  --header-height: 64px; /* height of the fixed header */
+  --chat-vspace: 160px;
+  --input-height: 56px;
+  --header-height: 64px;
+  /* ESg color tokens (kept as CSS vars for easy reference) */
+  --esg-50: #eefdf6;
+  --esg-100: #dff7ec;
+  --esg-200: #c2f3dc;
+  --esg-500: #10b981;
+  --esg-600: #059669;
 }
 
-*{box-sizing:border-box}
-html,body,#root{height:100%; overflow:hidden}
-body{
-  margin:0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
-  background: linear-gradient(180deg, #081124 0%, #081123 100%);
-  color:#e6eef6;
+@layer components {
+  .esg-header {
+    @apply bg-white rounded-lg shadow px-4 py-3 flex items-center;
+    border-left: 4px solid var(--esg-500);
+  }
+  .esg-card {
+    @apply bg-white rounded-xl shadow p-4;
+  }
+  .esg-btn {
+    @apply inline-flex items-center px-3 py-1.5 rounded-md text-white;
+    background-color: var(--esg-500);
+  }
+  .esg-btn:hover{ background-color: var(--esg-600); }
+  .esg-input {
+    @apply w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-esg-200;
+  }
 }
 
-.app{max-width:900px;margin:24px auto;padding:16px;padding-top:calc(var(--header-height) + 16px)}
+/* small helpers */
+.whitespace-pre-wrap{white-space:pre-wrap}
 
-/* fixed header at top of viewport */
-.header{display:flex;align-items:center;gap:16px;position:fixed;left:50%;transform:translateX(-50%);top:12px;z-index:60;width:calc(min(900px, 100% - 48px));height:var(--header-height);padding:8px 16px;background:rgba(255,255,255,0.02);border-radius:12px}
-.header h1{margin:0}
-
-.chat-container{background:rgba(255,255,255,0.02);border-radius:12px;padding:12px;display:flex;flex-direction:column;height:calc(100vh - var(--chat-vspace));min-height:520px;padding-bottom:calc(var(--input-height) + 64px)}
-.messages{flex:1 1 auto;overflow:auto;padding:8px 8px calc(var(--input-height) + 44px) 8px;display:flex;flex-direction:column;gap:8px;scroll-padding-bottom:calc(var(--input-height) + 48px)}
-
-/* visually hide scrollbars but keep scrolling behavior */
-.messages{
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
-}
-.messages::-webkit-scrollbar{display:none;height:0;width:0}
-.message{display:flex;gap:12px;align-items:flex-start}
-.message.user{justify-content:flex-end}
-.message .role{width:60px;font-size:12px;color:var(--muted)}
-.message.user .content{background:linear-gradient(90deg,var(--accent),#06b6d4);color:#062024}
-.message.assistant .content{background:rgba(255,255,255,0.04)}
-.message.system .content{background:rgba(255,255,255,0.02);font-style:italic}
-.content{padding:10px 14px;border-radius:8px;max-width:70%;white-space:pre-wrap}
-.input-row{display:flex;gap:8px;padding:8px 12px;border-top:1px solid rgba(255,255,255,0.02);background:transparent}
-
-/* fixed input at the viewport bottom */
-.input-row{
+/* Header layout and fallbacks (useful before Tailwind build runs) */
+.header{
   position:fixed;
-  left:50%;
-  transform:translateX(-50%);
-  bottom:24px;
-  z-index:60;
-  width:calc(min(900px, 100% - 48px));
-  padding:8px 12px;
-  box-sizing:border-box;
-  /* visual separation so messages don't seem under the input */
-  background: linear-gradient(180deg, rgba(11,18,32,0.0), rgba(11,18,32,0.6));
-  backdrop-filter: blur(6px);
-  border-radius:12px;
-  box-shadow: 0 8px 24px rgba(2,6,23,0.6);
+  top:0; left:0; right:0;
+  height:var(--header-height);
+  display:flex; align-items:center;
+  padding:0 1rem;
+  background:transparent;
+  z-index:30;
 }
-.input-row input{flex:1;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:inherit;height:var(--input-height)}
-.input-row button{margin-left:8px;padding:10px 16px;border-radius:10px;border:0;background:var(--accent);color:#02211a;height:var(--input-height)}
+.header h1{
+  font-weight:600;
+  font-size:1.125rem;
+  color:var(--esg-600);
+}
+.main{ padding-top: calc(var(--header-height) + 8px); }
 
-/* responsive: reduce spacing on small screens */
-@media (max-width:600px){
-  .input-row{width:calc(100% - 24px);left:12px;transform:none}
-  .header{width:calc(100% - 24px);left:12px;transform:none}
+/* Small utility fallbacks for classes used in JSX so header looks correct before Tailwind generates utilities */
+.bg-esg-100{ background-color: var(--esg-100) !important; }
+.text-esg-800{ color: #0f3f2a !important; }
+.text-esg-800, .text-esg-800 *{ color: #0f3f2a !important; }
+
+.header button{ border:0; background:transparent; cursor:pointer; padding:0.375rem 0.75rem; border-radius:0.375rem; }
+.header button.text-gray-600{ color:#4b5563; }
+.header button:hover{ background: rgba(5,150,105,0.06); }
+
+/* make sure header nav groups don't wrap */
+.header .ml-auto{ display:flex; gap:0.5rem; align-items:center; }
+
+/* Page background and elevated card styles for better hierarchy */
+.app{ background: var(--bg, #f6fffa); min-height:100vh; }
+.chat-card{ border-radius:1rem; box-shadow: 0 8px 30px rgba(4,20,12,0.06); }
+
+/* Fallback utility tokens so components look correct before Tailwind runs */
+.bg-esg-50{ background-color: var(--esg-50) !important; }
+.border-esg-100{ border-color: var(--esg-100) !important; }
+.bg-esg-500{ background-color: var(--esg-500) !important; }
+.bg-esg-500, .bg-esg-500 *{ background-color: var(--esg-500) !important; }
+.text-esg-800{ color: #0f3f2a !important; }
+
+/* Larger message bubble fallback sizes */
+.max-w-\[72\%\]{ max-width: 72% !important; }
+
+/* Ensure the chat area can scroll nicely */
+.chat-card .overflow-auto{ scrollbar-width: thin; }
+
+/* Typing indicator dots (used by TypingIndicator component) */
+.typing-indicator{ display:inline-flex; gap:6px; align-items:center; }
+.typing-indicator .dot{ width:8px; height:8px; background:var(--esg-600); border-radius:50%; display:inline-block; opacity:0.6; transform:translateY(0); animation:ti-bounce 900ms infinite ease-in-out; }
+.typing-indicator .dot:nth-child(2){ animation-delay:120ms }
+.typing-indicator .dot:nth-child(3){ animation-delay:240ms }
+@keyframes ti-bounce{
+  0%{ transform:translateY(0); opacity:0.6 }
+  50%{ transform:translateY(-6px); opacity:1 }
+  100%{ transform:translateY(0); opacity:0.6 }
 }
 
-/* typing indicator */
-.typing-indicator{display:flex;gap:6px;align-items:center}
-.typing-indicator .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.6);opacity:0.2}
-.typing-indicator .dot:nth-child(1){animation:typing 1s infinite 0s}
-.typing-indicator .dot:nth-child(2){animation:typing 1s infinite 0.15s}
-.typing-indicator .dot:nth-child(3){animation:typing 1s infinite 0.3s}
-@keyframes typing{0%{opacity:0.2;transform:translateY(0)}50%{opacity:1;transform:translateY(-6px)}100%{opacity:0.2;transform:translateY(0)}}
+/* SVG spinner used by TypingIndicator */
+.esg-spinner{ width:20px; height:20px; color:var(--esg-500); animation: spin 1s linear infinite; }
+.esg-spinner .path{ stroke: currentColor; stroke-width:4; stroke-linecap:round; stroke-dasharray: 120; stroke-dashoffset: 30; }
+@keyframes spin{ 100%{ transform: rotate(360deg); } }
 
-/* loading bubble style */
-.message.loading{align-items:flex-start}
-.message.loading .content{background:rgba(255,255,255,0.04);max-width:120px;padding:8px;border-radius:12px}
-.message.loading .role{width:60px}
+/* Webfont: place your webfont files in `front/public/fonts/` and name accordingly.
+   Example files: public/fonts/GoogleSans-Regular.woff2, GoogleSans-Medium.woff2
+   Then the browser will load the local copy. Remove or update if you plan to self-host other fonts. */
+@font-face {
+  font-family: 'Google Sans';
+  src: local('Google Sans'), local('GoogleSans'), url('/fonts/GoogleSans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Google Sans';
+  src: local('Google Sans Medium'), url('/fonts/GoogleSans-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+/* Chat typography and markdown spacing to mimic Gemini style */
+.chat-card{ font-family: 'Noto Sans TC', 'Google Sans', 'Google Sans Text', 'Product Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; font-size:14px; color: #0f3f2a; }
+.markdown-content{ font-size:14px; line-height:1.7; color: inherit; }
+/* larger paragraph separation for clearer reading */
+.markdown-content p{ margin: 0.9rem 0 0.6rem 0; }
+.markdown-content h1, .markdown-content h2, .markdown-content h3{ margin: 1rem 0 0.6rem 0; font-weight:600; }
+.markdown-content h1{ font-size:18px }
+.markdown-content h2{ font-size:16px }
+.markdown-content ul, .markdown-content ol{ margin: 0 0 0.45rem 1rem; }
+.markdown-content li{ margin: 0.18rem 0; }
+.markdown-content pre{ background: #f3f4f6; padding: 0.5rem; border-radius: 0.375rem; overflow:auto; font-size:13px; margin: 0 0 0.45rem 0 }
+.markdown-content code{ background:#f3f4f6; padding:0.08rem 0.24rem; border-radius:4px; font-size:13px }
+.markdown-content blockquote{ margin:0; padding-left:0.6rem; border-left:3px solid rgba(16,185,129,0.12); color: rgba(15,63,42,0.85); }
+
+/* ensure all immediate markdown children have modest spacing */
+.markdown-content > * { margin-top: 0; margin-bottom: 0.6rem }
+
+/* Slightly tighter bubble padding for a denser look */
+.chat-card .max-w-\[72\%\]{ padding: 10px 14px; }
+
+/* Suggestion chips enter/exit animation */
+.suggestions{ transition: opacity 180ms ease, transform 180ms ease; }
+.suggestions.enter{ opacity:1; transform: translateY(0) scale(1); }
+.suggestions.exit{ opacity:0; transform: translateY(6px) scale(0.98); }
+.suggestion-chip{ transition: transform 160ms ease, box-shadow 160ms ease; }
+.suggestion-chip:active{ transform: translateY(1px) scale(0.98); }
+
+/* More dynamic spinner: combine rotation, dash offset and subtle scale pulse */
+.esg-spinner{ width:20px; height:20px; color:var(--esg-500); animation: spin 1s linear infinite; }
+.esg-spinner .path{ stroke: currentColor; stroke-width:4; stroke-linecap:round; stroke-dasharray: 90 150; stroke-dashoffset: 0; transform-origin: 50% 50%; animation: dash 1.2s ease-in-out infinite, pulse 1.6s ease-in-out infinite; }
+@keyframes dash{
+  0%{ stroke-dasharray: 1 200; stroke-dashoffset: 0 }
+  50%{ stroke-dasharray: 120 200; stroke-dashoffset: -40 }
+  100%{ stroke-dasharray: 1 200; stroke-dashoffset: -120 }
+}
+@keyframes pulse{
+  0%{ transform: scale(1) }
+  50%{ transform: scale(1.06) }
+  100%{ transform: scale(1) }
+}
+
+/* Horizontal rule inside markdown: tighter spacing */
+.markdown-content hr{ height:1px; border:none; background: rgba(5,150,105,0.08); margin: 0.32rem 0; }

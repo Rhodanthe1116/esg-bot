@@ -8,3 +8,5 @@ pypdf
 chromadb
 sentence-transformers
 google-genai
+# 範例：重新安裝支援 CUDA 的 PyTorch (請根據您的 CUDA 版本參考 PyTorch 官網指令)
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
